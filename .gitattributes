@@ -1,0 +1,19 @@
+# governor — normalize line endings; mark generated/vendored paths so GitHub's
+# language stats reflect the actual source (not the vendored Zephyr tree or the
+# fuzz corpus).
+* text=auto eol=lf
+
+*.c    text diff=cpp
+*.h    text diff=cpp
+*.py   text diff=python
+*.robot text
+*.repl text
+*.resc text
+
+# Binary-ish fuzz corpus entries: don't diff, don't count as source.
+fuzz/corpus/** binary linguist-generated=true
+
+# Vendored / pulled-in trees are excluded from language stats by .gitignore
+# (deps/, modules/, zephyr-sdk-*), but mark docs + tests so the profile reads as
+# a C-firmware project with real test/doc coverage rather than "mostly Python".
+docs/**   linguist-documentation=true

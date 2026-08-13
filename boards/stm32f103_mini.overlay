@@ -1,0 +1,61 @@
+/*
+ * stm32f103_mini overlay — governor emulated-hardware wiring.
+ *
+ * - usart1 stays the console/shell (board default).
+ * - usart2 becomes the dedicated framed-protocol LINK uart (aliased govlink),
+ *   so human logs and the binary link never collide on one wire.
+ * - i2c1 gets a generic sensor child node (aliased govsensor) at 0x48 so the
+ *   HAL adapter can DEVICE_DT_GET the bus and target a real address; in Renode
+ *   the fault scenarios drive this device's ACK/NAK/data.
+ * - iwdg (watchdog0) is already enabled by the board dts; referenced via the
+ *   watchdog0 chosen node.
+ */
+
+/ {
+	chosen {
+		/* The framed link uses usart2; console/log stays on usart1. */
+		govtelemetry,link-uart = &usart2;
+	};
+
+	aliases {
+		gov-link-uart = &usart2;
+	};
+};
+
+&usart2 {
+	status = "okay";
+	current-speed = <115200>;
+};
+
+&i2c1 {
+	status = "okay";
+	clock-frequency = <I2C_BITRATE_STANDARD>;
+	/*
+	 * The HAL adapter (drivers/hal_zephyr.c) binds the i2c1 CONTROLLER via
+	 * DEVICE_DT_GET and addresses the emulated sensor at GOV_SENSOR_I2C_ADDR
+	 * (0x48) directly — no child DT node/binding needed. In Renode the fault
+	 * scenarios present/withhold ACKs and data at that address to drive
+	 * F01-F05.
+	 */
+};
+
+/*
+ * Config persistence (): a storage partition for Zephyr settings/NVS. The
+ * board defines none. F1 flash erase-page is 2 KB; NVS needs >=2 sectors, so
+ * 4 KB (2x 2 KB pages) at the top of the 128 KB flash (0x1f000). See
+ * app/persist.c + docs. In Renode the flash-controller + erased-state are
+ * surrogated (renode/governor.repl); the torn-write logic is host-proven
+ * (lib/config).
+ */
+&flash0 {
+	partitions {
+		compatible = "fixed-partitions";
+		#address-cells = <1>;
+		#size-cells = <1>;
+
+		storage_partition: partition@1f000 {
+			label = "storage";
+			reg = <0x0001f000 DT_SIZE_K(4)>;
+		};
+	};
+};

@@ -1,0 +1,83 @@
+name: Feature request
+description: Propose a new capability, driver, scenario, or doc for the governor node.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        governor favors **required-outcome fault handling over feature count**, and the hard
+        logic is **host-portable-first** (`lib/{proto,control,telem,safety,config}` — zero Zephyr
+        includes, tested/fuzzed on the host before any firmware). New work should land as a thin
+        addition that keeps that discipline and stays verifiable in CI. Please say how it would be
+        proven, and keep any claimed measurement honest (emulated timing is virtual-time, not silicon).
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What & why
+      description: The capability and the problem it solves. Prefer the smallest thing that works.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: layer
+    attributes:
+      label: Which layer does it live in?
+      description: Host-portable logic must stay Zephyr-free; firmware is thin glue.
+      multiple: true
+      options:
+        - Host-portable C library (lib/* — no Zephyr includes)
+        - Zephyr adapter / firmware glue (src/, app/, drivers/hal_zephyr.c)
+        - Renode scenario / machine model (renode/*.robot, governor.repl/.resc)
+        - Host tooling / ground station (host/governor_gs, fuzz/)
+        - Docs (README, DESIGN, RULES, PROTOCOL_SPEC, SAFETY_SM, TASKS, ENV, BOARD_APPENDIX)
+        - CI / build (.github/workflows, tests/host.mk, twister)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: contract
+    attributes:
+      label: Does it touch a FROZEN contract?
+      description: |
+        The  contracts are frozen and changed only through a deliberate, -gated process
+        (not casually in a feature PR). A change to any of these must be justified explicitly and must not
+        weaken a required outcome or widen a bound.
+      options:
+        - "No — additive only, no frozen contract changes"
+        - "PROTOCOL_SPEC (frame layout / ARQ / dedup rules — docs/PROTOCOL_SPEC.md)"
+        - "SAFETY_SM (states / transitions T0–T12 / events — docs/SAFETY_SM.md, lib/safety)"
+        - "TASKS (task set / priorities / periods / stack budgets — docs/TASKS.md)"
+        - "REGISTRY (fault matrix rows, required outcomes, numeric constants, bounds — config/registry.md)"
+    validations:
+      required: true
+
+  - type: textarea
+    id: contract_justification
+    attributes:
+      label: If it touches a frozen contract — justify it
+      description: Why the change is necessary, what it affects downstream, and confirmation that no required outcome is weakened and no bound widened. Leave blank if additive-only.
+
+  - type: checkboxes
+    id: verification
+    attributes:
+      label: How would it be verified?
+      description: Every gate's acceptance criteria applies. Check all that this feature would need before it could merge.
+      options:
+        - label: Host unit tests (ztest/native_sim + standalone-compiled lib tests)
+        - label: Property tests (invariants — framing round-trip, dedup, torn-write, safety transitions, PID anti-windup)
+        - label: Fuzz gate (libFuzzer + ASan/UBSan on the frame decoder — required if it touches the parser)
+        - label: Renode fault-matrix scenario (deterministic replay, required outcome asserted)
+        - label: Static-analysis clean (-Wall -Wextra -Werror -Wconversion, clang-tidy, cppcheck)
+        - label: Stack / no-post-init-allocation impact measured (if it adds a task or buffer)
+        - label: Coverage stays ≥ 90% on host-portable modules
+
+  - type: checkboxes
+    id: honest
+    attributes:
+      label: Honest-claims reminder
+      options:
+        - label: Any timing/throughput/stack numbers I propose to report will be labeled as emulated / virtual-time, never presented as silicon performance.
+          required: true
+        - label: This adds required-outcome coverage or clear value — not a speculative feature that dilutes the fault-handling focus.
+          required: true

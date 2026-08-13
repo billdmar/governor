@@ -1,0 +1,132 @@
+name: Bug report
+description: A defect in the governor node — wrong safety-state behavior, a link/protocol fault, a build/static-analysis break, a failing Renode/ztest/host scenario, or a docs/measurement discrepancy.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for filing. governor is verified emulation-first (QEMU + Renode STM32,
+        virtual time) with a frozen fault matrix (`config/registry.md`, F01–F16) and a
+        Acceptance criteria per gate. To be actionable a bug report needs a **deterministic,
+        CI-reproducible** repro — a one-off that only fails on your machine is very hard to
+        act on here. Please label emulated timing/stack numbers as virtual-time.
+
+  - type: dropdown
+    id: target
+    attributes:
+      label: Target / layer where it reproduces
+      description: Where did you observe the failure? (See docs/ENV.md for the target matrix — native_sim is CI-only / Linux; local macOS uses qemu_cortex_m3 + host tests.)
+      multiple: true
+      options:
+        - native_sim (Zephyr POSIX — CI/ubuntu only)
+        - qemu_cortex_m3 (real ARM cross-compile under QEMU — primary local target)
+        - stm32f103_mini on Renode (fault-matrix / robot scenarios)
+        - host unit/property tests (standalone-compiled lib/*, no Zephyr)
+        - libFuzzer host harness (fuzz/fuzz_frame.c)
+        - CI only (fails on the runner, not locally)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: subsystem
+    attributes:
+      label: Subsystem
+      description: Which module owns the misbehavior? Host-portable modules live in lib/; Zephyr glue in src/, app/, drivers/.
+      multiple: true
+      options:
+        - proto (CRC framing / ARQ / dedup — lib/proto)
+        - control (PID loop / plant / divergence — lib/control)
+        - telem (telemetry encoding / fault flags — lib/telem)
+        - safety (state machine INIT→RUN→DEGRADED→SAFE_STOP/FAULT_HALT — lib/safety)
+        - config (A/B torn-write-safe persistence — lib/config)
+        - drivers (HAL sensor driver / fault hooks — drivers/)
+        - link (UART adapter / ring buffer / link_rx / link_tx)
+        - persistence (Zephyr settings/NVS binding — app/persist.c)
+        - build / static analysis (clang-tidy, cppcheck, -Werror -Wconversion)
+        - CI / Renode machine (workflows, governor.repl/.resc, robot suites)
+        - docs / measured numbers (README/DESIGN/registry mismatch)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: fault_row
+    attributes:
+      label: Fault-matrix row (if applicable)
+      description: If this concerns a registered fault scenario, name it. Required outcomes and bounds are FROZEN and are never weakened to pass — a broken row is fixed, not relaxed (config/registry.md §2).
+      options:
+        - "N/A — not a registered fault scenario"
+        - "F01 sensor dropout → DEGRADED (T3) / FAULT_SENSOR_DROP"
+        - "F02 sensor stuck → DEGRADED (T3) / FAULT_SENSOR_STUCK"
+        - "F03 sensor garbage/range → DEGRADED (T3) / FAULT_SENSOR_RANGE"
+        - "F04 I2C NAK → retry then DEGRADED / FAULT_BUS_NAK"
+        - "F05 I2C bus error / SDA stuck → DEGRADED→SAFE_STOP (T7) / FAULT_BUS_ERR"
+        - "F06 UART bit corruption → CRC drop / stat_crc_err / link stays RUN"
+        - "F07 frame loss → retransmit ×3 → LINK_FAULT (T4) / FAULT_LINK"
+        - "F08 duplicate frame → dedup re-ACK, no re-delivery / stat_dup"
+        - "F09 garbage burst → resync on SOF, deliver valid frame"
+        - "F10 watchdog trip → reset → INIT, FAULT_WATCHDOG sticky (T11)"
+        - "F11 task overrun → 3 misses → DEGRADED (T10) / FAULT_TIMING"
+        - "F12 plant divergence → SAFE_STOP (T5) / FAULT_DIVERGE (latched)"
+        - "F13 operator e-stop → SAFE_STOP (T8) / FAULT_OPERATOR_STOP (latched)"
+        - "F14 init self-test fail → SAFE_STOP (T2) / FAULT_INIT (latched)"
+        - "F15 reset mid config-write → old-valid or new-valid, never corrupt"
+        - "F16 reset mid in-flight frame → decoder starts clean (HUNT_SOF), resync"
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Reproduction commands
+      description: The exact commands, from a clean `source tools/env.sh`. Include the target flag and seed if relevant.
+      placeholder: |
+        source tools/env.sh
+        make -C tests/proto CC=cc test          # or: west twister -p native_sim -T tests/
+        west build -b qemu_cortex_m3 -t run .    # or: renode-test renode/link_faults.robot
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected_actual
+    attributes:
+      label: Expected vs. actual
+      description: |
+        For a safety/fault bug, state the required outcome from config/registry.md (target state, fault flag, recovery) and what actually happened (wrong state? no telemetry flag? deadlock? silent degradation?).
+      placeholder: |
+        Expected: F07 exhausts GOV_MAX_RETRIES then RUN→DEGRADED (T4) with FAULT_LINK raised in telemetry.
+        Actual:   link retries forever; state stays RUN; no fault flag emitted.
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / UART transcript / assertion output
+      description: QEMU/Renode console, the framed usart2 transcript, ztest/host assertion failure, or the ASan/UBSan report. For fuzzer findings, attach the crashing input from the corpus.
+      render: text
+
+  - type: textarea
+    id: toolchain
+    attributes:
+      label: Toolchain versions
+      description: |
+        Paste the relevant pinned versions. See **docs/ENV.md** for the canonical pinned set
+        (Zephyr 3.7.0, SDK 0.16.8, west 1.5.0, venv CMake 3.31.6, QEMU 11.0.3, cppcheck 2.21.0,
+        LLVM 22.1.8, Python 3.12.13). Note any deviation — a version drift is often the root cause.
+      placeholder: |
+        OS/arch: macOS 15 arm64  (or: ubuntu-latest CI)
+        Deviations from docs/ENV.md pins (if any):
+      render: text
+
+  - type: checkboxes
+    id: confirms
+    attributes:
+      label: Before submitting
+      options:
+        - label: I confirmed this reproduces deterministically (fixed seed / virtual time), not as a one-off flake.
+          required: true
+        - label: I can reproduce it in CI, or the repro runs the same way the CI workflows (`ci` / `renode-matrix`) do.
+          required: true
+        - label: Any timing/stack numbers I cite are labeled as emulated / virtual-time (not silicon).
+          required: true
+        - label: This is not a request to weaken a required outcome or widen a bound in config/registry.md.
+          required: true

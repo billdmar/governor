@@ -1,0 +1,136 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="520" viewBox="0 0 1000 520" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#6b7280"/>
+    </marker>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#e5484d"/>
+    </marker>
+    <marker id="ag" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#2da44e"/>
+    </marker>
+    <style>
+      .title { font-size:22px; font-weight:700; fill:#1f2328; }
+      .sub   { font-size:13px; fill:#57606a; }
+      .sname { font-size:17px; font-weight:700; fill:#1f2328; }
+      .sdesc { font-size:11.5px; fill:#57606a; }
+      .t     { font-size:11.5px; fill:#57606a; }
+      .tid   { font-size:11.5px; font-weight:700; fill:#1f2328; }
+      .s-init { fill:#eaeef2; stroke:#8b949e; stroke-width:2; }
+      .s-run  { fill:#e6f6ec; stroke:#2da44e; stroke-width:2.5; }
+      .s-deg  { fill:#fff8e6; stroke:#d4a72c; stroke-width:2.5; }
+      .s-safe { fill:#fdeceb; stroke:#e5484d; stroke-width:2.5; }
+      .s-halt { fill:#2b1416; stroke:#e5484d; stroke-width:2.5; }
+      .en     { stroke:#6b7280; stroke-width:1.7; fill:none; }
+      .er     { stroke:#e5484d; stroke-width:1.7; fill:none; }
+      .eg     { stroke:#2da44e; stroke-width:1.7; fill:none; }
+      @media (prefers-color-scheme: dark) {
+        .bg     { fill:#0d1117; }
+        .title  { fill:#e6edf3; } .sub { fill:#8b949e; }
+        .sname  { fill:#e6edf3; } .sdesc { fill:#8b949e; }
+        .t { fill:#8b949e; } .tid { fill:#e6edf3; }
+        .s-init { fill:#21262d; stroke:#6e7681; }
+        .s-run  { fill:#12261a; stroke:#3fb950; }
+        .s-deg  { fill:#272115; stroke:#d29922; }
+        .s-safe { fill:#2b1416; stroke:#f85149; }
+        .s-halt { fill:#010409; stroke:#f85149; }
+      }
+    </style>
+  </defs>
+  <rect class="bg" x="0" y="0" width="1000" height="520" fill="#ffffff"/>
+  <text class="title" x="28" y="42">Safety state machine — sole authority on actuation</text>
+  <text class="sub" x="28" y="64">5 states · transitions T0–T12 · every transition raises a telemetry fault flag · SAFE_STOP / FAULT_HALT latch · no deadlock, no silent degradation</text>
+
+  <!-- power-on -->
+  <circle cx="80" cy="150" r="9" fill="#1f2328"/>
+  <text class="t" x="80" y="128" text-anchor="middle">power-on</text>
+  <path class="en" d="M89,150 H140" marker-end="url(#a)"/>
+  <text class="tid" x="115" y="142" text-anchor="middle">T0</text>
+
+  <!-- INIT -->
+  <rect class="s-init" x="140" y="118" width="150" height="70" rx="12"/>
+  <text class="sname" x="215" y="150" text-anchor="middle">INIT</text>
+  <text class="sdesc" x="215" y="170" text-anchor="middle">actuation inhibited</text>
+
+  <!-- RUN -->
+  <rect class="s-run" x="430" y="118" width="150" height="70" rx="12"/>
+  <text class="sname" x="505" y="150" text-anchor="middle">RUN</text>
+  <text class="sdesc" x="505" y="170" text-anchor="middle">full actuation</text>
+
+  <!-- DEGRADED -->
+  <rect class="s-deg" x="430" y="300" width="150" height="70" rx="12"/>
+  <text class="sname" x="505" y="332" text-anchor="middle">DEGRADED</text>
+  <text class="sdesc" x="505" y="352" text-anchor="middle">clamped output</text>
+
+  <!-- SAFE_STOP -->
+  <rect class="s-safe" x="760" y="118" width="180" height="70" rx="12"/>
+  <text class="sname" x="850" y="150" text-anchor="middle">SAFE_STOP</text>
+  <text class="sdesc" x="850" y="170" text-anchor="middle">safe output · latched</text>
+
+  <!-- FAULT_HALT -->
+  <rect class="s-halt" x="760" y="300" width="180" height="70" rx="12"/>
+  <text class="sname" x="850" y="332" text-anchor="middle" fill="#f85149">FAULT_HALT</text>
+  <text class="sdesc" x="850" y="352" text-anchor="middle" fill="#d0b0b0">terminal · reset only</text>
+
+  <!-- T1 INIT->RUN -->
+  <path class="eg" d="M290,145 H430" marker-end="url(#ag)"/>
+  <text class="tid" x="360" y="132" text-anchor="middle">T1</text>
+  <text class="t" x="360" y="118" text-anchor="middle">self-test OK</text>
+
+  <!-- T2 INIT->SAFE_STOP (top arc) -->
+  <path class="er" d="M245,118 C260,60 800,58 830,118" marker-end="url(#ar)"/>
+  <text class="tid" x="545" y="58" text-anchor="middle">T2</text>
+  <text class="t" x="545" y="74" text-anchor="middle">self-test fail / init timeout → FAULT_INIT</text>
+
+  <!-- T3/T10 RUN->DEGRADED -->
+  <path class="en" d="M488,188 V300" marker-end="url(#a)"/>
+  <text class="tid" x="452" y="238" text-anchor="middle">T3·T4·T10</text>
+  <text class="t" x="452" y="254" text-anchor="middle">recoverable</text>
+  <text class="t" x="452" y="268" text-anchor="middle">sensor/link/timing</text>
+
+  <!-- T6 DEGRADED->RUN -->
+  <path class="eg" d="M522,300 V188" marker-end="url(#ag)"/>
+  <text class="tid" x="560" y="238" text-anchor="middle">T6</text>
+  <text class="t" x="562" y="254" text-anchor="middle">cause clear</text>
+  <text class="t" x="562" y="268" text-anchor="middle">+ dwell</text>
+
+  <!-- T5 RUN->SAFE_STOP -->
+  <path class="er" d="M580,140 H760" marker-end="url(#ar)"/>
+  <text class="tid" x="670" y="128" text-anchor="middle">T5</text>
+  <text class="t" x="670" y="114" text-anchor="middle">diverge → FAULT_DIVERGE</text>
+
+  <!-- T7 DEGRADED->SAFE_STOP -->
+  <path class="er" d="M580,320 C680,320 730,220 800,188" marker-end="url(#ar)"/>
+  <text class="tid" x="700" y="270" text-anchor="middle">T7</text>
+  <text class="t" x="700" y="286" text-anchor="middle">2nd fault / max-degraded</text>
+
+  <!-- T9 SAFE_STOP->INIT (bottom-left return) -->
+  <path class="eg" d="M760,178 C520,240 300,230 260,188" marker-end="url(#ag)"/>
+  <text class="tid" x="470" y="222" text-anchor="middle">T9</text>
+  <text class="t" x="470" y="208" text-anchor="middle">operator CMD_CLEAR + cause clear → re-run bring-up</text>
+
+  <!-- T8 (operator e-stop from INIT/RUN/DEGRADED) note -->
+  <rect x="28" y="300" width="360" height="86" rx="10" fill="#fdeceb" stroke="#e5484d" stroke-width="1.3"/>
+  <text class="tid" x="44" y="324">T8 — operator emergency stop</text>
+  <text class="t" x="44" y="344">from INIT, RUN, or DEGRADED → SAFE_STOP.</text>
+  <text class="t" x="44" y="360">Accepted during bring-up too — an e-stop is</text>
+  <text class="t" x="44" y="376">never ignored, whatever the phase. FAULT_OPERATOR_STOP.</text>
+
+  <!-- T11 / T12 -> FAULT_HALT -->
+  <path class="er" d="M580,335 H760" marker-end="url(#ar)"/>
+  <text class="tid" x="670" y="323" text-anchor="middle">T11·T12</text>
+  <text class="t" x="670" y="309" text-anchor="middle">watchdog / invariant</text>
+
+  <!-- legend -->
+  <g transform="translate(28,430)">
+    <text class="sub" x="0" y="0" font-weight="600">Transitions:</text>
+    <line class="eg" x1="86" y1="-5" x2="122" y2="-5" marker-end="url(#ag)"/>
+    <text class="t" x="128" y="0">recovery / progress</text>
+    <line class="er" x1="266" y1="-5" x2="302" y2="-5" marker-end="url(#ar)"/>
+    <text class="t" x="308" y="0">fault → safe state (latched)</text>
+    <line class="en" x1="486" y1="-5" x2="522" y2="-5" marker-end="url(#a)"/>
+    <text class="t" x="528" y="0">degrade / recoverable</text>
+  </g>
+  <text class="t" x="28" y="466">Invariant: actuation enabled only in RUN (full) and DEGRADED (clamped); INIT / SAFE_STOP / FAULT_HALT ⇒ output = safe value — checked every step.</text>
+  <text class="t" x="28" y="484">Full transition table with triggers &amp; required behavior: docs/SAFETY_SM.md (T0–T12).</text>
+</svg>

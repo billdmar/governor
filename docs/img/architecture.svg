@@ -1,0 +1,137 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="560" viewBox="0 0 1000 560" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#6b7280"/>
+    </marker>
+    <marker id="arrowAccent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#7c5cff"/>
+    </marker>
+    <style>
+      .card   { fill:#ffffff; stroke:#d0d7de; stroke-width:1.5; rx:10; }
+      .task   { fill:#eef2ff; stroke:#7c5cff; stroke-width:1.5; }
+      .safety { fill:#fff1f0; stroke:#e5484d; stroke-width:1.5; }
+      .ext    { fill:#f6f8fa; stroke:#afb8c1; stroke-width:1.5; }
+      .title  { font-size:22px; font-weight:700; fill:#1f2328; }
+      .sub    { font-size:13px; fill:#57606a; }
+      .lbl    { font-size:14px; font-weight:600; fill:#1f2328; }
+      .lbls   { font-size:11.5px; fill:#57606a; }
+      .edge   { font-size:11px; fill:#57606a; }
+      .band   { font-size:12px; font-weight:600; fill:#6639ba; }
+      .wire   { stroke:#6b7280; stroke-width:1.6; fill:none; }
+      .wireA  { stroke:#7c5cff; stroke-width:1.8; fill:none; }
+      @media (prefers-color-scheme: dark) {
+        .bg     { fill:#0d1117; }
+        .card   { fill:#161b22; stroke:#30363d; }
+        .task   { fill:#1c1b2e; stroke:#8b73ff; }
+        .safety { fill:#2b1416; stroke:#f85149; }
+        .ext    { fill:#161b22; stroke:#484f58; }
+        .title  { fill:#e6edf3; }
+        .sub    { fill:#8b949e; }
+        .lbl    { fill:#e6edf3; }
+        .lbls   { fill:#8b949e; }
+        .edge   { fill:#8b949e; }
+        .band   { fill:#b6a6ff; }
+      }
+    </style>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="1000" height="560" fill="#ffffff"/>
+  <text class="title" x="28" y="42">governor — telemetry &amp; control node</text>
+  <text class="sub" x="28" y="64">Zephyr RTOS · 5 threads · host-portable C core wired to hardware through thin adapters</text>
+
+  <!-- outer node boundary -->
+  <rect x="250" y="88" width="620" height="360" rx="14" fill="none" stroke="#afb8c1" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text class="sub" x="266" y="108" font-weight="600">governor node (Zephyr)</text>
+
+  <!-- emulated sensor -->
+  <rect class="card ext" x="28" y="150" width="176" height="66" rx="10"/>
+  <text class="lbl" x="116" y="182" text-anchor="middle">emulated I2C sensor</text>
+  <text class="lbls" x="116" y="200" text-anchor="middle">addr 0x48 · fault hooks</text>
+
+  <!-- drivers -->
+  <rect class="card" x="272" y="150" width="150" height="66" rx="10"/>
+  <text class="lbl" x="347" y="182" text-anchor="middle">drivers/</text>
+  <text class="lbls" x="347" y="200" text-anchor="middle">HAL vtable</text>
+
+  <!-- control -->
+  <rect class="card task" x="462" y="150" width="164" height="66" rx="10"/>
+  <text class="lbl" x="544" y="178" text-anchor="middle">control · p4</text>
+  <text class="lbls" x="544" y="196" text-anchor="middle">100 Hz · PID + anti-windup</text>
+
+  <!-- safety clamp / SM -->
+  <rect class="card safety" x="666" y="150" width="180" height="120" rx="10"/>
+  <text class="lbl" x="756" y="176" text-anchor="middle">safety state machine</text>
+  <text class="lbls" x="756" y="196" text-anchor="middle">INIT · RUN · DEGRADED</text>
+  <text class="lbls" x="756" y="212" text-anchor="middle">SAFE_STOP · FAULT_HALT</text>
+  <text class="lbls" x="756" y="240" text-anchor="middle">sole authority on actuation</text>
+  <text class="lbls" x="756" y="256" text-anchor="middle">→ clamp / inhibit output</text>
+
+  <!-- plant -->
+  <rect class="card ext" x="666" y="300" width="180" height="60" rx="10"/>
+  <text class="lbl" x="756" y="330" text-anchor="middle">simulated plant</text>
+  <text class="lbls" x="756" y="348" text-anchor="middle">actuator + feedback</text>
+
+  <!-- health -->
+  <rect class="card task" x="272" y="300" width="164" height="66" rx="10"/>
+  <text class="lbl" x="354" y="328" text-anchor="middle">health · p8</text>
+  <text class="lbls" x="354" y="346" text-anchor="middle">20 Hz liveness</text>
+
+  <!-- watchdog -->
+  <rect class="card" x="462" y="300" width="164" height="66" rx="10"/>
+  <text class="lbl" x="544" y="328" text-anchor="middle">hardware watchdog</text>
+  <text class="lbls" x="544" y="346" text-anchor="middle">IWDG (fed iff healthy)</text>
+
+  <!-- link_rx / link_tx / telemetry cluster -->
+  <rect class="card task" x="272" y="384" width="120" height="48" rx="10"/>
+  <text class="lbl" x="332" y="413" text-anchor="middle">link_rx · p5</text>
+  <rect class="card task" x="404" y="384" width="120" height="48" rx="10"/>
+  <text class="lbl" x="464" y="413" text-anchor="middle">link_tx · p6</text>
+  <rect class="card task" x="536" y="384" width="140" height="48" rx="10"/>
+  <text class="lbl" x="606" y="413" text-anchor="middle">telemetry · p7</text>
+  <rect class="card" x="688" y="384" width="158" height="48" rx="10"/>
+  <text class="lbl" x="767" y="408" text-anchor="middle">config A/B</text>
+  <text class="lbls" x="767" y="424" text-anchor="middle">CRC + seq ← NVS</text>
+
+  <!-- ground station -->
+  <rect class="card ext" x="28" y="384" width="176" height="66" rx="10"/>
+  <text class="lbl" x="116" y="410" text-anchor="middle">ground station</text>
+  <text class="lbls" x="116" y="428" text-anchor="middle">Python · plant sim + scenarios</text>
+
+  <!-- wires: sensor -> drivers -> control -> safety -->
+  <path class="wire" d="M204,183 H272" marker-end="url(#arrow)"/>
+  <text class="edge" x="238" y="176" text-anchor="middle">sample</text>
+  <path class="wire" d="M422,183 H462" marker-end="url(#arrow)"/>
+  <path class="wireA" d="M626,183 H666" marker-end="url(#arrowAccent)"/>
+  <text class="edge" x="646" y="176" text-anchor="middle">PID u</text>
+
+  <!-- safety -> plant -->
+  <path class="wireA" d="M756,270 V300" marker-end="url(#arrowAccent)"/>
+  <text class="edge" x="792" y="288" text-anchor="middle">actuate</text>
+  <!-- plant feedback -> control (up the left of plant, across) -->
+  <path class="wire" d="M666,330 H544 V216" marker-end="url(#arrow)"/>
+  <text class="edge" x="560" y="262" text-anchor="middle">feedback</text>
+
+  <!-- health -> watchdog -> (kick) -->
+  <path class="wire" d="M436,333 H462" marker-end="url(#arrow)"/>
+  <text class="edge" x="449" y="326" text-anchor="middle">kick</text>
+  <!-- control deadline -> health (miss feeds liveness) -->
+  <path class="wire" d="M500,216 V300" marker-end="url(#arrow)" transform="translate(-40,0)"/>
+  <text class="edge" x="452" y="260" text-anchor="middle">deadline</text>
+
+  <!-- safety state+faults -> telemetry (down the clear channel between watchdog and plant) -->
+  <path class="wire" d="M690,270 V282 H650 V378 H606 V384" marker-end="url(#arrow)"/>
+  <text class="edge" x="646" y="300" text-anchor="end">state+faults</text>
+
+  <!-- ground station <-> link_rx/link_tx over UART -->
+  <path class="wire" d="M204,405 H272" marker-end="url(#arrow)"/>
+  <text class="edge" x="238" y="398" text-anchor="middle">UART usart2</text>
+  <path class="wire" d="M404,417 H204" marker-end="url(#arrow)"/>
+  <text class="edge" x="300" y="440" text-anchor="middle">ACK / retransmit</text>
+  <!-- telemetry -> ground station (frames out) : route along bottom -->
+  <path class="wire" d="M606,432 V466 H116 V450" marker-end="url(#arrow)"/>
+  <text class="edge" x="360" y="482" text-anchor="middle">CRC-framed telemetry frames out</text>
+
+  <!-- host-portable band -->
+  <rect x="250" y="500" width="620" height="34" rx="8" fill="#f3effe" stroke="#8b73ff" stroke-width="1.2"/>
+  <text class="band" x="560" y="522" text-anchor="middle">host-portable C, no Zephyr:  lib/proto · lib/control · lib/telem · lib/safety · lib/config  —  unit + property + fuzz tested before any hardware</text>
+</svg>

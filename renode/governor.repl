@@ -1,0 +1,88 @@
+// governor.repl — STM32F103 platform for the governor node, extended for the
+// fault matrix. Includes Renode's stock STM32F103 platform and adds the pieces
+// that platform lacks but the firmware uses:
+//
+//   * iwdg  — the STM32 independent watchdog. Renode 1.16.1 ships no STM32 IWDG
+//             model, so we model it with a Python peripheral at the real IWDG
+//             address (0x40003000, per the Zephyr stm32f1 dtsi). It implements
+//             the minimum the Zephyr st,stm32-watchdog driver touches: the KR
+//             (key) register at offset 0. Writing 0xCCCC starts it and 0xAAAA
+//             feeds it; the firmware's health task feeds it every ~50 ms. This
+//             is a documented surrogate (renode/README.md) — the REQUIRED
+//             OUTCOME for F10 (reset -> INIT with sticky FAULT_WATCHDOG) is
+//             asserted unchanged; only the trip is driven explicitly from the
+//             Robot scenario via `machine Reset`, not weakened.
+//
+//   * gov_sensor — a settable I2C temperature-style sensor at 0x48 on i2c1 so
+//             the node's sensor bring-up succeeds and boot-to-RUN is faithful.
+//             (Deterministic dropout/stuck/NAK scripting on this model is not
+//             practical in pure Robot; per the layered-proof decision those
+//             rows F01-F05 are proven authoritatively in the host/ztest
+//             fake_bus layer — see renode/README.md.)
+
+using "platforms/cpus/stm32f103.repl"
+
+// RCC (Reset & Clock Control). The stock stm32f103.repl models RCC only as a
+// static Tag, so writes are dropped and reads return a constant. Zephyr's
+// STM32F1 clock driver enables the HSE/PLL then SPINS waiting for the readback
+// ready bits (HSERDY/PLLRDY in CR, LSIRDY in CSR) — which never appear against
+// a static Tag, so the firmware never finishes clock init and never boots
+// (the cause of the CI hang: no boot -> virtual time frozen -> Wait blocks).
+// This Python peripheral makes RCC behave as read-write memory AND forces the
+// clock-ready bits set on every CR/CSR read, so the poll loop always completes.
+rcc: Python.PythonPeripheral @ sysbus <0x40021000, +0x400>
+    size: 0x400
+    initable: true
+    script: '''
+if request.IsInit:
+    regs = [0] * (size >> 2)
+elif request.IsWrite:
+    regs[request.Offset >> 2] = request.Value
+elif request.IsRead:
+    val = regs[request.Offset >> 2]
+    if request.Offset == 0x0:      # RCC_CR: HSIRDY|HSERDY|PLLRDY set
+        val = val | 0x02 | 0x20000 | 0x02000000
+    elif request.Offset == 0x4:    # RCC_CFGR: mirror SW[1:0] into SWS[3:2] so
+        val = val | ((val & 0x3) << 2)  # the sysclk-switch poll completes
+    elif request.Offset == 0x24:   # RCC_CSR: LSIRDY set
+        val = val | 0x02
+    request.Value = val
+'''
+
+// FLASH controller (0x40022000). The stock repl leaves this unmodeled; Zephyr's
+// STM32F1 flash driver reads FLASH_SR.BSY (idle) and FLASH_CR.LOCK before
+// erase/program. This surrogate returns BSY=0 (idle) and accepts the unlock/CR
+// writes so the driver proceeds; the actual data lands in the flash MappedMemory
+// (which survives machine Reset — MappedMemory.Reset is a no-op — so persisted
+// NVS config is read back after a reset, registry F15). Documented surrogate
+// (renode/README.md); the torn-write LOGIC is host-proven in lib/config.
+flashctl: Python.PythonPeripheral @ sysbus <0x40022000, +0x400>
+    size: 0x400
+    initable: true
+    script: '''
+if request.IsInit:
+    regs = [0] * (size >> 2)
+elif request.IsWrite:
+    regs[request.Offset >> 2] = request.Value
+elif request.IsRead:
+    val = regs[request.Offset >> 2]
+    if request.Offset == 0x0:      # FLASH_ACR: prefetch/latency — return as-is
+        pass
+    elif request.Offset == 0xC:    # FLASH_SR: BSY(bit0)=0 idle; EOP(bit5)=1 done
+        val = (val & ~0x1) | 0x20
+    request.Value = val
+'''
+
+iwdg: Python.PythonPeripheral @ sysbus <0x40003000, +0x400>
+    size: 0x400
+    initable: true
+    script: '''
+if request.IsInit:
+    regs = [0] * (size >> 2)
+elif request.IsWrite:
+    regs[request.Offset >> 2] = request.Value
+    # KR writes (0xCCCC start, 0xAAAA feed, 0x5555 unlock) accepted; the
+    # surrogate never auto-trips — F10 drives the reset explicitly.
+elif request.IsRead:
+    request.Value = regs[request.Offset >> 2]
+'''

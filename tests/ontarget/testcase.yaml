@@ -1,0 +1,19 @@
+common:
+  tags:
+    - governor
+    - ontarget
+  # These run on the emulation targets the project uses. native_sim runs on the
+  # CI Linux runner; qemu_cortex_m3 runs the real ARM cross-compiled ztest image.
+  integration_platforms:
+    - native_sim
+tests:
+  governor.ontarget:
+    platform_allow:
+      - native_sim
+      - qemu_cortex_m3
+    harness: ztest
+    # Generous cap: on a shared CI runner qemu_cortex_m3 under icount virtual
+    # time can run the multi-second control-loop tests far slower than local,
+    # tripping the default harness timeout ("Unknown"). Logic is deterministic;
+    # this only bounds wall-clock.
+    timeout: 120

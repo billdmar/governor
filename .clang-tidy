@@ -1,0 +1,21 @@
+# governor clang-tidy config — applied to host-portable C in lib/**.
+# See docs/RULES.md. Enabled families map to the MISRA-inspired subset; the set
+# is treated as errors in CI so a regression fails the build.
+Checks: >
+  bugprone-*,
+  cert-*,
+  misc-*,
+  performance-*,
+  portability-*,
+  readability-braces-around-statements,
+  readability-else-after-return,
+  readability-inconsistent-declaration-parameter-name,
+  clang-analyzer-*,
+  -bugprone-easily-swappable-parameters,
+  -readability-magic-numbers,
+  -cert-dcl03-c,
+  -misc-no-recursion
+
+WarningsAsErrors: '*'
+HeaderFilterRegex: 'lib/.*'
+FormatStyle: file

@@ -1,0 +1,52 @@
+
+# --- Zephyr / west workspace (pulled locally, not vendored) ---
+/.venv/
+/deps/
+/modules/
+/bootloader/
+/.west/
+/zephyr-sdk*/
+
+# --- Build artifacts ---
+build/
+build*/
+twister-out*/
+*.o
+*.a
+*.elf
+*.bin
+*.hex
+*.map
+
+# --- Fuzzing artifacts (corpus IS committed; crashes/leaks are not) ---
+fuzz/crash-*
+fuzz/leak-*
+fuzz/oom-*
+fuzz/*.profraw
+fuzz/*.profdata
+/fuzz/build/
+
+# --- Coverage ---
+*.gcda
+*.gcno
+coverage*/
+lcov.info
+build_cov/
+*.profraw
+*.profdata
+
+# --- Host / Python ---
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+host/**/*.log
+
+# --- Editor / OS ---
+.DS_Store
+.vscode/
+.idea/
+*.swp
+
+# Session handoff scratch (local; not part of the public deliverable)
+HANDOFF.md

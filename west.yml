@@ -1,0 +1,28 @@
+# west manifest — governor is a T2-star workspace application.
+# The repo IS the west topdir; Zephyr + modules are cloned into gitignored
+# subdirectories (see .gitignore). Revision is PINNED for reproducibility.
+manifest:
+  remotes:
+    - name: zephyrproject-rtos
+      url-base: https://github.com/zephyrproject-rtos
+
+  projects:
+    - name: zephyr
+      remote: zephyrproject-rtos
+      # Zephyr LTS v3 (v3.7.0) — pinned. Chosen for long-term stability over a
+      # bleeding-edge release; well-matched to the Zephyr SDK and Renode CI action.
+      revision: v3.7.0
+      # Checked out under deps/ so the RTOS root Kconfig does not collide with
+      # this application's own <app>/zephyr/ module path (recursive-source bug).
+      path: deps/zephyr
+      import:
+        # Only pull the modules governor actually needs — keeps the workspace
+        # small and the clone fast. Expand deliberately if a driver needs more.
+        name-allowlist:
+          - cmsis          # ARM CMSIS headers (qemu_cortex_m3, STM32)
+          - hal_stm32      # STM32 HAL for the Renode STM32 machine
+          - segger         # RTT/SystemView (optional debug transport)
+
+  self:
+    # Manifest repo == topdir (this repo). See .west/config (manifest.path = .).
+    path: .

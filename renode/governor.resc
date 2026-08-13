@@ -1,0 +1,33 @@
+# governor.resc — bring up the governor node on the emulated STM32F103 machine.
+#
+# Usage (local, once Renode is installed):
+#   renode renode/governor.resc
+# CI drives the same machine via the Robot suites (renode/*.robot) which set
+# $elf themselves. This script is for interactive/local bring-up and demos.
+#
+# $elf may be set before `include`-ing this script; otherwise it defaults to the
+# stm32f103_mini build output.
+$elf ?= @build_stm32/zephyr/zephyr.elf
+
+mach create "governor"
+machine LoadPlatformDescription @renode/governor.repl
+
+# Load the firmware.
+sysbus LoadELF $elf
+
+# usart1 = console/log (human + scenario-readable "GOV state=..." lines).
+showAnalyzer sysbus.usart1
+
+# usart2 = the framed telemetry link. Expose it as a raw TCP socket (no telnet
+# negotiation) so the Python ground station (host/governor_gs) can connect and
+# exchange DATA/ACK/CMD frames with the node.
+emulation CreateServerSocketTerminal 3456 "govlink" false
+connector Connect sysbus.usart2 govlink
+
+macro reset
+"""
+    sysbus LoadELF $elf
+"""
+
+echo "governor node ready on emulated STM32F103. usart1=console, usart2=link@tcp:3456."
+echo "Run 'start' to boot. Expect: 'governor boot: node online' then 'state=RUN'."

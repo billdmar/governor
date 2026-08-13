@@ -1,0 +1,12 @@
+# governor application Kconfig.
+source "Kconfig.zephyr"
+
+config GOV_TIMING_TRACE
+	bool "Emit per-iteration control-loop timing trace"
+	default n
+	help
+	  When enabled, the control thread logs a "CTRL tick dt=<ms>" line each
+	  period so tools/timing/measure_loop.py can measure control-loop period
+	  adherence and jitter (config/registry.md §3). This is a measurement
+	  build option — EMULATION / virtual-time structure validation, never a
+	  silicon-performance claim. Off in production builds.

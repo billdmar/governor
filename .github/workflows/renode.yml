@@ -1,0 +1,108 @@
+name: renode-matrix
+
+# governor — the emulated-hardware fault matrix on a real STM32F103 machine.
+# Builds the stm32f103_mini firmware, then runs the Renode/Robot scenarios
+# (renode/*.robot) via Antmicro's renode-test-action. EMULATION / virtual-time.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Least privilege: this workflow only reads the repo.
+permissions:
+  contents: read
+
+concurrency:
+  group: renode-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  ZEPHYR_SDK_VERSION: "0.16.8"
+
+jobs:
+  renode-matrix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      # Check out into a subdir: the renode-test-action clones Renode into
+      # ./renode at the workspace root, which would collide with this repo's
+      # own renode/ scenario directory. Keeping our tree under governor/ avoids
+      # that collision.
+      - uses: actions/checkout@v4
+        with:
+          path: governor
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install build deps (pinned west + CMake 3.31 for Zephyr 3.7)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build device-tree-compiler gperf ccache
+          pip install "west==1.5.0" "cmake==3.31.6" pyelftools "setuptools<81"
+
+      - name: West init + update (pinned Zephyr v3.7.0, shallow)
+        working-directory: governor
+        run: |
+          west init -l .
+          west update --narrow -o=--depth=1
+          west zephyr-export
+          ZBASE="$(west list -f '{abspath}' zephyr)"
+          echo "ZEPHYR_BASE=${ZBASE}" >> "$GITHUB_ENV"
+          pip install -r "${ZBASE}/scripts/requirements.txt"
+
+      - name: Install Zephyr SDK (arm-zephyr-eabi only)
+        run: |
+          cd /tmp
+          BASE="https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v${ZEPHYR_SDK_VERSION}"
+          curl -fL --retry 3 -o sdk.tar.xz "${BASE}/zephyr-sdk-${ZEPHYR_SDK_VERSION}_linux-x86_64_minimal.tar.xz"
+          tar xf sdk.tar.xz
+          curl -fL --retry 3 -o arm.tar.xz "${BASE}/toolchain_linux-x86_64_arm-zephyr-eabi.tar.xz"
+          tar xf arm.tar.xz -C zephyr-sdk-${ZEPHYR_SDK_VERSION}
+          cd zephyr-sdk-${ZEPHYR_SDK_VERSION}
+          cmake -P ./cmake/zephyr_sdk_export.cmake
+          echo "ZEPHYR_SDK_INSTALL_DIR=/tmp/zephyr-sdk-${ZEPHYR_SDK_VERSION}" >> "$GITHUB_ENV"
+
+      - name: Build stm32f103_mini firmware (the ELF the scenarios load)
+        working-directory: governor
+        env:
+          ZEPHYR_TOOLCHAIN_VARIANT: zephyr
+        run: |
+          west build -b stm32f103_mini -p always . -d build_stm32
+          test -f build_stm32/zephyr/zephyr.elf
+
+      - name: Install prebuilt Renode 1.16.1 (portable) + robot test deps
+        run: |
+          cd /tmp
+          curl -fL --retry 3 -o renode.tar.gz \
+            https://github.com/renode/renode/releases/download/v1.16.1/renode-1.16.1.linux-portable.tar.gz
+          mkdir -p /tmp/renode && tar xzf renode.tar.gz -C /tmp/renode --strip-components=1
+          echo "/tmp/renode" >> "$GITHUB_PATH"
+          # renode-test runs headless natively (it passes --disable-gui to the
+          # Renode process); no xvfb needed. Install its Python deps.
+          pip install -r /tmp/renode/tests/requirements.txt || pip install robotframework psutil pyelftools construct
+
+      - name: Renode fault matrix (Robot scenarios on the STM32 machine)
+        working-directory: governor
+        timeout-minutes: 25
+        run: |
+          # --test-timeout: hard per-test wall-clock cap so a mis-authored
+          # scenario fails fast (Wait-For-Line's own timeout is VIRTUAL time and
+          # can't fire if the guest never boots). The boot/SAFE_STOP events take
+          # a few virtual seconds, but a busy shared CI runner emulates far
+          # slower in wall-clock (F09: 6.5s local vs up to 283s on a slow runner),
+          # so the guard needs large headroom: 500s, under the robot Test Timeout
+          # of 540s. -P 0: auto-pick the robot server port. Headless-native.
+          renode-test -P 0 --test-timeout 500 -r renode-artifacts \
+            renode/boot.robot renode/system_faults.robot \
+            renode/link_faults.robot renode/persistence.robot
+
+      - name: Upload Renode logs/reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: renode-artifacts
+          path: governor/renode-artifacts
+          if-no-files-found: ignore

@@ -1,0 +1,14 @@
+blank_issues_enabled: false
+contact_links:
+  - name: README — headline results, architecture, quickstart
+    url: https://github.com/billdmar/governor/blob/main/README.md
+    about: Start here for what governor is, the verification pillars, and the 3-command native quickstart.
+  - name: Fault matrix & frozen bounds (config/registry.md)
+    url: https://github.com/billdmar/governor/blob/main/config/registry.md
+    about: The 16 registered fault rows (F01–F16), their required safe-state outcomes, and the timing/stack/coverage bounds. Read this before filing a fault bug or a contract-touching feature.
+  - name: Toolchain & reproducible environment (docs/ENV.md)
+    url: https://github.com/billdmar/governor/blob/main/docs/ENV.md
+    about: Pinned tool versions and the native_sim/qemu_cortex_m3/Renode target matrix. Check your versions here before reporting a build issue.
+  - name: Questions & design discussion
+    url: https://github.com/billdmar/governor/discussions
+    about: For open-ended questions, design rationale, or "is this a bug?" — use Discussions rather than an issue.
